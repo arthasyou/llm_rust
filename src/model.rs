@@ -1,8 +1,9 @@
 use candle_core::{Device, Module, Tensor};
 use candle_nn::{
+    embedding,
     loss::cross_entropy,
     ops::{sigmoid, softmax},
-    Embedding,
+    Embedding, VarBuilder,
 };
 use tracing_subscriber::filter::targets;
 
@@ -10,19 +11,24 @@ use crate::util::{convert_to_u32, create_embedding, get_btc, multinomial};
 
 #[derive(Debug)]
 pub struct Bigram {
-    pub embedding: Embedding,
+    pub embed_token: Embedding,
     pub device: Device,
 }
 
 impl Bigram {
-    pub fn new(vacab_size: usize, hidden_size: usize, device: Device) -> Self {
-        let embedding = create_embedding(vacab_size, hidden_size, &device);
+    pub fn new(vb: VarBuilder, vacab_size: usize, hidden_size: usize, device: Device) -> Self {
+        let embed_token = embedding(vacab_size, hidden_size, vb.pp("embedding")).unwrap();
 
-        Self { embedding, device }
+        // let embedding = create_embedding(vacab_size, hidden_size, &device);
+
+        Self {
+            embed_token,
+            device,
+        }
     }
 
     pub fn forward(&self, index: &Tensor, targets: Option<&Tensor>) -> (Tensor, Option<Tensor>) {
-        let logits = self.embedding.forward(index).unwrap();
+        let logits = self.embed_token.forward(index).unwrap();
         match targets {
             Some(targets) => {
                 let (b, t, c) = get_btc(&logits);
