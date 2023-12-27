@@ -35,7 +35,10 @@ fn main() -> Result<()> {
     let model = Bigram::new(vb, vacab_size, vacab_size, device.clone());
 
     // training
-    let params = ParamsAdamW::default();
+    let params = ParamsAdamW {
+        lr: 1e-4,
+        ..Default::default()
+    };
     let mut opt = AdamW::new(varmap.all_vars(), params).unwrap();
 
     for step in 0..100000 {
