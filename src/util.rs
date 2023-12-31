@@ -1,5 +1,6 @@
-use crate::error::{Error, Result};
-use candle_nn::{embedding, Embedding};
+use crate::error::Result;
+
+use candle_nn::prelu;
 use rand::{seq::SliceRandom, thread_rng};
 use std::{
     collections::{HashMap, HashSet},
@@ -12,14 +13,9 @@ use rand::Rng;
 use candle_core::{Device, Tensor};
 
 pub fn load_txt_file(file_path: &str) -> Result<String> {
-    let mut file = File::open(file_path).map_err(|e| Error {
-        message: e.to_string(),
-    })?;
+    let mut file = File::open(file_path)?;
     let mut text = String::new();
-
-    file.read_to_string(&mut text).map_err(|e| Error {
-        message: e.to_string(),
-    })?;
+    file.read_to_string(&mut text)?;
     Ok(text)
 }
 
@@ -31,27 +27,29 @@ pub fn sorted_char(text: &str) -> Vec<char> {
     chars
 }
 
-pub fn tokenization(chars: &Vec<char>) -> (HashMap<char, usize>, HashMap<usize, char>) {
-    let string_to_int: HashMap<char, usize> =
-        chars.iter().enumerate().map(|(i, &ch)| (ch, i)).collect();
-    let int_to_string: HashMap<usize, char> =
-        chars.iter().enumerate().map(|(i, &ch)| (i, ch)).collect();
+pub fn tokenization(chars: &Vec<char>) -> (HashMap<char, u32>, HashMap<u32, char>) {
+    let string_to_int: HashMap<char, u32> = chars
+        .iter()
+        .enumerate()
+        .map(|(i, &ch)| (ch, i as u32))
+        .collect();
+    let int_to_string: HashMap<u32, char> = chars
+        .iter()
+        .enumerate()
+        .map(|(i, &ch)| (i as u32, ch))
+        .collect();
     (string_to_int, int_to_string)
 }
 
-pub fn encode(s: &str, mapping: &HashMap<char, usize>) -> Vec<usize> {
+pub fn encode(s: &str, mapping: &HashMap<char, u32>) -> Vec<u32> {
     s.chars().filter_map(|c| mapping.get(&c)).cloned().collect()
 }
 
-pub fn decode(code: &[usize], mapping: &HashMap<usize, char>) -> String {
+pub fn decode(code: &[u32], mapping: &HashMap<u32, char>) -> String {
     code.iter()
         .filter_map(|&i| mapping.get(&i))
         .cloned()
         .collect()
-}
-
-pub fn vec_usize_to_u32(v: Vec<usize>) -> Vec<u32> {
-    v.into_iter().map(|x| x as u32).collect()
 }
 
 pub fn split_data(data: Vec<u32>) -> (Vec<u32>, Vec<u32>) {
@@ -118,7 +116,19 @@ pub fn create_block(data: Vec<u32>, block_size: usize) -> Block {
         .take(size.saturating_sub(1))
         .map(|w| w.to_vec())
         .collect();
-    let y: Vec<Vec<u32>> = windows.iter().skip(1).map(|w| w.to_vec()).collect();
+    // let y: Vec<Vec<u32>> = windows.iter().skip(1).map(|w| w.to_vec()).collect();
+    let y: Vec<Vec<u32>> = windows
+        .iter()
+        .skip(1)
+        .map(|w| {
+            // 检查内部向量是否为空
+            if let Some(&last) = w.last() {
+                vec![last]
+            } else {
+                vec![] // 或者可以用其他方式处理空向量
+            }
+        })
+        .collect();
 
     Block {
         x,
@@ -144,30 +154,10 @@ pub fn batch_to_tensor(data: Vec<Vec<u32>>, device: &Device) -> Tensor {
     Tensor::from_vec(data, (batch_size, block_size), device).unwrap()
 }
 
-pub fn create_embedding(vacab_size: usize, hidden_size: usize, device: &Device) -> Embedding {
-    let tensor = Tensor::randn(0f32, 1., (vacab_size, hidden_size), &device).unwrap();
-    Embedding::new(tensor, hidden_size)
-}
-
-pub fn get_btc(embedding: &Tensor) -> (usize, usize, usize) {
-    let btc = embedding.dims();
-    let b = *btc.get(0).unwrap();
-    let t = *btc.get(1).unwrap();
-    let c = *btc.get(2).unwrap();
-    (b, t, c)
-}
-
-// 类似python v[:,-1:,]
-pub fn take_vec3_2_last(data: &Vec<Vec<Vec<u32>>>) -> Vec<Vec<u32>> {
-    data.iter()
-        .map(|outer| outer.last().expect("Outer Vec is empty").clone())
-        .collect()
-}
-
 // 从一组Vec<f32>随机抽取几个样本
-pub fn multinomial(probs: &[f32], num_samples: usize) -> Vec<usize> {
+pub fn multinomial(probs: &[f32], num_samples: usize) -> Vec<u32> {
     let mut rng = rand::thread_rng();
-    let mut samples: Vec<usize> = Vec::with_capacity(num_samples);
+    let mut samples: Vec<u32> = Vec::with_capacity(num_samples);
 
     for _ in 0..num_samples {
         let random_value: f32 = rng.gen(); // 生成随机值 [0, 1)
@@ -177,16 +167,11 @@ pub fn multinomial(probs: &[f32], num_samples: usize) -> Vec<usize> {
             cumulative_prob += prob;
 
             if random_value < cumulative_prob {
-                samples.push(idx);
+                samples.push(idx as u32);
                 break;
             }
         }
     }
 
     samples
-}
-
-pub fn convert_to_u32(input: Vec<usize>) -> Vec<u32> {
-    let result: Vec<u32> = input.iter().map(|&x| x as u32).collect();
-    result
 }

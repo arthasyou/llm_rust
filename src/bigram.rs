@@ -1,13 +1,7 @@
 use candle_core::{Device, Module, Tensor};
-use candle_nn::{
-    embedding,
-    loss::cross_entropy,
-    ops::{sigmoid, softmax},
-    Embedding, VarBuilder,
-};
-use tracing_subscriber::filter::targets;
+use candle_nn::{embedding, loss::cross_entropy, ops::softmax, Embedding, VarBuilder};
 
-use crate::util::{convert_to_u32, create_embedding, get_btc, multinomial};
+use crate::util::multinomial;
 
 #[derive(Debug)]
 pub struct Bigram {
@@ -31,9 +25,11 @@ impl Bigram {
         let logits = self.embed_token.forward(index).unwrap();
         match targets {
             Some(targets) => {
-                let (b, t, c) = get_btc(&logits);
+                let (b, t, c) = logits.dims3().unwrap();
                 let logits = logits.reshape((b * t, c)).unwrap();
                 let targets = targets.reshape(b * t).unwrap();
+                println!("logits: {:#?}", logits);
+                println!("targets: {:#?}", targets);
                 let loss = cross_entropy(&logits, &targets).unwrap();
                 (logits, Some(loss))
             }
@@ -41,12 +37,12 @@ impl Bigram {
         }
     }
 
-    pub fn generate(&self, input: &Tensor, max_tokens: usize) -> Vec<usize> {
-        let mut results: Vec<usize> = Vec::new();
+    pub fn generate(&self, input: &Tensor, max_tokens: usize) -> Vec<u32> {
+        let mut results: Vec<u32> = Vec::new();
         let mut iii = input.clone();
         for _ in 0..max_tokens {
             let (logits, _) = self.forward(&iii, None);
-            let (b, t, c) = get_btc(&logits);
+            let (b, t, c) = logits.dims3().unwrap();
             let logits = logits.reshape((b * t, c)).unwrap();
             let probs = softmax(&logits, 1)
                 .unwrap()
@@ -57,7 +53,6 @@ impl Bigram {
 
             let a = multinomial(&probs, 1);
             results.push(*a.get(0).unwrap());
-            let a = convert_to_u32(a);
 
             iii = Tensor::from_vec(a, (1, 1), &self.device).unwrap();
         }

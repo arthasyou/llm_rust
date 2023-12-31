@@ -1,62 +1,96 @@
 mod error;
-mod model;
+mod gpt;
 mod util;
 
 use crate::error::Result;
-use crate::model::Bigram;
-use crate::util::{
-    batch_to_tensor, decode, encode, load_txt_file, sorted_char, tokenization, vec_usize_to_u32,
-};
-use candle_core::{DType, Device, Module, Tensor};
+use crate::gpt::{Config, Gpt};
+// use crate::models::bigram::Bigram;
+use crate::util::{decode, encode, load_txt_file, sorted_char, tokenization};
+use candle_core::{DType, Device, Tensor};
 use candle_nn::{AdamW, Optimizer, ParamsAdamW, VarBuilder, VarMap};
+use gpt::Cache;
 use util::{create_block, split_data};
 
-static BLOCK_SIZE: usize = 8;
-static BATCH_SIZE: usize = 8;
+static BATCH_SIZE: usize = 2;
+static BLOCK_SIZE: usize = 128;
+
+static HIDDEN_SIZE: usize = 256;
+static INTERMEDIATE_SIZE: usize = 512;
+static HIDDEN_LAYER: usize = 4;
+static ATTENTION_HEADS: usize = 4;
+static KEY_VALUE_HEADS: usize = 4;
+static ROPE_THETA: f32 = 100_000.0;
+static NORM_EPS: f64 = 1e-6;
 
 fn main() -> Result<()> {
     let device = Device::Cpu;
-
     // preparing data
     let text = load_txt_file("data/wizard_of_oz.txt")?;
     let chars: Vec<char> = sorted_char(&text);
-    let vacab_size = chars.len();
-    let (encoder, decoder) = tokenization(&chars);
-    let data = vec_usize_to_u32(encode(&text, &encoder));
-    let (train_data, val_data) = split_data(data);
-    let train_blocks = create_block(train_data, BLOCK_SIZE);
-    // let batch = train_blocks.get_batch(BATCH_SIZE, &device);
+    let vocab_size = chars.len();
 
-    // println!("{:?}", batch);
+    let cfg = Config {
+        hidden_size: HIDDEN_SIZE,
+        intermediate_size: INTERMEDIATE_SIZE,
+        vocab_size,
+        num_hidden_layers: HIDDEN_LAYER,
+        num_attention_heads: ATTENTION_HEADS,
+        num_key_value_heads: KEY_VALUE_HEADS,
+        use_flash_attn: false,
+        rms_norm_eps: NORM_EPS,
+        rope_theta: ROPE_THETA,
+    };
 
-    // creating models
+    let cache = Cache::new(false, &cfg, DType::F32, &device)?;
+    // println!("{:?}", cache);
+
     let varmap = VarMap::new();
     let vb = VarBuilder::from_varmap(&varmap, DType::F32, &device);
-    let model = Bigram::new(vb, vacab_size, vacab_size, device.clone());
+    let model = Gpt::init(vb, &cache, &cfg)?;
+
+    let (encoder, decoder) = tokenization(&chars);
+    let data = encode(&text, &encoder);
+    let (train_data, val_data) = split_data(data);
+    let train_blocks = create_block(train_data, BLOCK_SIZE);
+
+    // let batch = train_blocks.get_batch(BATCH_SIZE, &device);
+
+    // let logits = model.forward(&batch.x, 0)?;
+
+    // // let logit = logit.flatten_to(1)?;
+    // println!("{:#?}", logits);
+    // // println!("{}", batch.x);
+    // println!("{}", &batch.y);
+
+    // let loss = candle_nn::loss::cross_entropy(&logits, &batch.y.flatten_to(1)?)?;
+    // println!("{:#?}", loss);
 
     // training
     let params = ParamsAdamW {
-        lr: 1e-4,
+        lr: 1e-3,
         ..Default::default()
     };
     let mut opt = AdamW::new(varmap.all_vars(), params).unwrap();
 
-    for step in 0..100000 {
+    for step in 0..10000 {
+        // println!("Step: {:?}", step);
         let batch = train_blocks.get_batch(BATCH_SIZE, &device);
-        let (_ys, loss) = model.forward(&batch.x, Some(&batch.y));
-        let loss = loss.unwrap();
+        // println!("X: {:?}", &batch.x);
+        let logits = model.forward(&batch.x, 0)?;
+        // println!("Step: ++2{:?}", step);
+
+        let loss = candle_nn::loss::cross_entropy(&logits, &batch.y.flatten_to(1)?)?;
+        // println!("Step: ++3{:?}", step);
 
         opt.backward_step(&loss).unwrap();
-        if step % 100 == 0 || step == 99999 {
+        // println!("Step: ++4{:?}", step);
+        // println!("{step} {}", loss.to_vec0::<f32>().unwrap());
+        if step % 10 == 0 {
             println!("{step} {}", loss.to_vec0::<f32>().unwrap());
         }
     }
 
     println!("{:?}", varmap.all_vars());
-
-    let input = Tensor::zeros((1, 1), DType::U32, &device).unwrap();
-    let code = model.generate(&input, 500);
-    let output = decode(&code, &decoder);
-    println!("{:#?}", output);
+    varmap.save("checkpoint.safetensors").unwrap();
     Ok(())
 }
