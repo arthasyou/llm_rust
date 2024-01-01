@@ -11,7 +11,7 @@ use candle_nn::{AdamW, Optimizer, ParamsAdamW, VarBuilder, VarMap};
 use gpt::Cache;
 use util::{create_block, split_data};
 
-static BATCH_SIZE: usize = 2;
+static BATCH_SIZE: usize = 512;
 static BLOCK_SIZE: usize = 128;
 
 static HIDDEN_SIZE: usize = 256;
@@ -23,7 +23,8 @@ static ROPE_THETA: f32 = 100_000.0;
 static NORM_EPS: f64 = 1e-6;
 
 fn main() -> Result<()> {
-    let device = Device::Cpu;
+    // let device = Device::Cpu;
+    let device = Device::new_cuda(0)?;
     // preparing data
     let text = load_txt_file("data/wizard_of_oz.txt")?;
     let chars: Vec<char> = sorted_char(&text);
@@ -67,7 +68,7 @@ fn main() -> Result<()> {
 
     // training
     let params = ParamsAdamW {
-        lr: 1e-3,
+        lr: 1e-4,
         ..Default::default()
     };
     let mut opt = AdamW::new(varmap.all_vars(), params).unwrap();
@@ -85,7 +86,7 @@ fn main() -> Result<()> {
         opt.backward_step(&loss).unwrap();
         // println!("Step: ++4{:?}", step);
         // println!("{step} {}", loss.to_vec0::<f32>().unwrap());
-        if step % 10 == 0 {
+        if step % 100 == 0 {
             println!("{step} {}", loss.to_vec0::<f32>().unwrap());
         }
     }
