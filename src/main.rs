@@ -23,8 +23,11 @@ static ROPE_THETA: f32 = 100_000.0;
 static NORM_EPS: f64 = 1e-6;
 
 fn main() -> Result<()> {
-    // let device = Device::Cpu;
-    let device = Device::new_cuda(0)?;
+    let device = Device::Cpu;
+    // let device = Device::new_metal(0)?;
+    // let device = Device::new_cuda(0)?;
+    // println!("{:?}", &device);
+
     // preparing data
     let text = load_txt_file("data/wizard_of_oz.txt")?;
     let chars: Vec<char> = sorted_char(&text);
@@ -73,7 +76,7 @@ fn main() -> Result<()> {
     };
     let mut opt = AdamW::new(varmap.all_vars(), params).unwrap();
 
-    for step in 0..10000 {
+    for step in 0..10 {
         // println!("Step: {:?}", step);
         let batch = train_blocks.get_batch(BATCH_SIZE, &device);
         // println!("X: {:?}", &batch.x);
@@ -92,6 +95,6 @@ fn main() -> Result<()> {
     }
 
     println!("{:?}", varmap.all_vars());
-    varmap.save("checkpoint.safetensors").unwrap();
+    varmap.save("outputs/checkpoint.safetensors").unwrap();
     Ok(())
 }
