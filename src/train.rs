@@ -56,14 +56,14 @@ pub fn train() -> Result<()> {
     let vb = VarBuilder::from_varmap(&varmap, DType::F32, &device);
     let model = Gpt::init(vb, &cache, &cfg)?;
 
-    // println!("{:?}", model);
+    println!("{:?}", model);
 
     let (encoder, decoder) = tokenization(&chars);
     let data = encode(&text, &encoder);
     let (train_data, val_data) = split_data(data);
     let train_blocks = create_block(train_data, BLOCK_SIZE);
 
-    // println!("String traing.........");
+    println!("String traing.........");
 
     // training
     let params = ParamsAdamW {
@@ -80,10 +80,10 @@ pub fn train() -> Result<()> {
         }
     });
 
-    // println!("String looping.......");
+    println!("String looping.......");
     let background_thread = thread::spawn(move || {
         let num_cpus = num_cpus::get();
-        (0..num_cpus).into_par_iter().for_each(|main_step| {
+        (0..num_cpus - 1).into_par_iter().for_each(|main_step| {
             let tx = tx.clone();
             for step in 0..1000 {
                 let batch = train_blocks.get_batch(BATCH_SIZE, &device);
