@@ -8,10 +8,11 @@ use candle_nn::{AdamW, Optimizer, ParamsAdamW, VarBuilder, VarMap};
 use chrono::Local;
 use rayon::prelude::*;
 use std::sync::mpsc;
+use std::thread;
 
 use crate::util::{create_block, split_data};
 
-static BATCH_SIZE: usize = 1;
+static BATCH_SIZE: usize = 8;
 static BLOCK_SIZE: usize = 128;
 
 static VOCAB_SIZE: usize = 50254;
@@ -55,14 +56,14 @@ pub fn train() -> Result<()> {
     let vb = VarBuilder::from_varmap(&varmap, DType::F32, &device);
     let model = Gpt::init(vb, &cache, &cfg)?;
 
-    println!("{:?}", model);
+    // println!("{:?}", model);
 
     let (encoder, decoder) = tokenization(&chars);
     let data = encode(&text, &encoder);
     let (train_data, val_data) = split_data(data);
     let train_blocks = create_block(train_data, BLOCK_SIZE);
 
-    println!("String traing.........");
+    // println!("String traing.........");
 
     // training
     let params = ParamsAdamW {
@@ -72,35 +73,39 @@ pub fn train() -> Result<()> {
     let mut opt = AdamW::new(varmap.all_vars(), params).unwrap();
     let (tx, rx) = mpsc::channel();
 
-    println!("String looping.......");
-    let num_cpus = num_cpus::get();
-    (0..num_cpus).into_par_iter().for_each(|main_step| {
-        let tx = tx.clone();
-        // println!("main——step thread: {:?}", std::thread::current());
-        for step in 0..1000 {
-            let batch = train_blocks.get_batch(BATCH_SIZE, &device);
-
-            let logits = model.forward(&batch.x, 0).expect("Error in forward pass");
-
-            let loss = candle_nn::loss::cross_entropy(
-                &logits,
-                &batch.y.flatten_to(1).expect("Error in flattening"),
-            )
-            .expect("Error in loss calculation");
-
-            // println!("Step: {:?}-{:?},  Loss: {}  ", main_step, step, loss);
-
-            tx.send(loss).unwrap();
+    let other_thread = thread::spawn(move || {
+        for loss in rx {
+            println!("recv loss: {:?}", loss);
+            opt.backward_step(&loss).expect("Error in backward step");
         }
-        drop(tx);
     });
 
-    for loss in rx {
-        println!("Loss: {}  ", loss);
-        opt.backward_step(&loss).expect("Error in backward step");
-    }
+    // println!("String looping.......");
+    let background_thread = thread::spawn(move || {
+        let num_cpus = num_cpus::get();
+        (0..num_cpus).into_par_iter().for_each(|main_step| {
+            let tx = tx.clone();
+            for step in 0..1000 {
+                let batch = train_blocks.get_batch(BATCH_SIZE, &device);
 
+                let logits = model.forward(&batch.x, 0).expect("Error in forward pass");
+
+                let loss = candle_nn::loss::cross_entropy(
+                    &logits,
+                    &batch.y.flatten_to(1).expect("Error in flattening"),
+                )
+                .expect("Error in loss calculation");
+                // println!("loss: {:?}", loss);
+                tx.send(loss).unwrap();
+            }
+        });
+    });
+
+    background_thread.join().unwrap();
+
+    other_thread.join().unwrap();
     println!("{:?}", varmap.all_vars());
     varmap.save("outputs/checkpoint.safetensors").unwrap();
+
     Ok(())
 }
