@@ -9,7 +9,7 @@ use crate::error::{Error, Result};
 use candle_core::{DType, Device, IndexOp, Module, Tensor, D};
 use candle_nn::{embedding, linear, Embedding, Linear, RmsNorm, VarBuilder};
 
-pub const MAX_SEQ_LEN: usize = 128;
+pub const MAX_SEQ_LEN: usize = 4096;
 
 #[derive(Debug)]
 pub struct Config {
@@ -166,14 +166,7 @@ impl CausalSelfAttention {
             let v = v.to_dtype(DType::F32)?;
 
             let att = (q.matmul(&k.t()?)? / (self.head_dim as f64).sqrt())?;
-
-            let mmm = self.cache.mask(seq_len)?;
-            // println!("{:?}", mmm);
-
-            let mask = mmm.broadcast_as(att.shape())?;
-
-            // let mask = self.cache.mask(seq_len)?.broadcast_as(att.shape())?;
-
+            let mask = self.cache.mask(seq_len)?.broadcast_as(att.shape())?;
             let att = masked_fill(&att, &mask, f32::NEG_INFINITY)?;
             let att = candle_nn::ops::softmax(&att, D::Minus1)?;
             // Convert to contiguous as matmul doesn't support strided vs for now.
