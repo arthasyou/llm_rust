@@ -5,9 +5,6 @@ use crate::gpt::Cache;
 use crate::util::{decode, encode, load_txt_file, sorted_char, tokenization};
 use candle_core::{DType, Device, Tensor};
 use candle_nn::{AdamW, Optimizer, ParamsAdamW, VarBuilder, VarMap};
-use chrono::Local;
-use rayon::prelude::*;
-use std::sync::mpsc;
 
 use crate::util::{create_block, split_data};
 
@@ -70,34 +67,26 @@ pub fn train() -> Result<()> {
         ..Default::default()
     };
     let mut opt = AdamW::new(varmap.all_vars(), params).unwrap();
-    let (tx, rx) = mpsc::channel();
 
     println!("String looping.......");
-    let num_cpus = num_cpus::get();
-    (0..num_cpus).into_par_iter().for_each(|main_step| {
-        let tx = tx.clone();
-        // println!("main——step thread: {:?}", std::thread::current());
-        for step in 0..1000 {
-            let batch = train_blocks.get_batch(BATCH_SIZE, &device);
 
-            let logits = model.forward(&batch.x, 0).expect("Error in forward pass");
+    for step in 0..10 {
+        
+        println!("Step: {:?}   ", step);
+        let batch = train_blocks.get_batch(BATCH_SIZE, &device);
+        // println!("X: {:?}", &batch.x);
+        let logits = model.forward(&batch.x, 0)?;
+        // println!("Step: ++2{:?}", step);
 
-            let loss = candle_nn::loss::cross_entropy(
-                &logits,
-                &batch.y.flatten_to(1).expect("Error in flattening"),
-            )
-            .expect("Error in loss calculation");
+        let loss = candle_nn::loss::cross_entropy(&logits, &batch.y.flatten_to(1)?)?;
+        // println!("Step: ++3{:?}", step);
 
-            // println!("Step: {:?}-{:?},  Loss: {}  ", main_step, step, loss);
-
-            tx.send(loss).unwrap();
-        }
-        drop(tx);
-    });
-
-    for loss in rx {
-        println!("Loss: {}  ", loss);
-        opt.backward_step(&loss).expect("Error in backward step");
+        opt.backward_step(&loss).unwrap();
+        // println!("Step: ++4{:?}", step);
+        println!("{step} {}", loss.to_vec0::<f32>().unwrap());
+        // if step % 100 == 0 {
+        //     println!("{step} {}", loss.to_vec0::<f32>().unwrap());
+        // }
     }
 
     println!("{:?}", varmap.all_vars());

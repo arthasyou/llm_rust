@@ -12,9 +12,12 @@ candle-core = { git = "https://github.com/huggingface/candle.git", version = "0.
 ] }
 # candle-core = { git = "https://github.com/huggingface/candle.git", version = "0.3.3", features = ["cuda"]}
 candle-nn = { git = "https://github.com/huggingface/candle.git", version = "0.3.2" }
+chrono = "0.4.31"
+num_cpus = "1.16.0"
 # candle-flash-attn = { git = "https://github.com/huggingface/candle.git", version = "0.3.2" }
 
 rand = "0.8.5"
+rayon = "1.8.0"
 serde = { version = "1.0.193", features = ["derive"] }
 thiserror = "1.0.53"
 
@@ -22,3 +25,7 @@ thiserror = "1.0.53"
 [dev-dependencies]
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
+
+# [features]
+# cuda = ["candle/cuda", "candle-nn/cuda"]
+# flash-attn = ["cuda", "dep:candle-flash-attn"]

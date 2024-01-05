@@ -9,7 +9,8 @@ use crate::error::{Error, Result};
 use candle_core::{DType, Device, IndexOp, Module, Tensor, D};
 use candle_nn::{embedding, linear, Embedding, Linear, RmsNorm, VarBuilder};
 
-pub const MAX_SEQ_LEN: usize = 4096;
+// pub const MAX_SEQ_LEN: usize = 4096;
+pub const MAX_SEQ_LEN: usize = 128;
 
 #[derive(Debug)]
 pub struct Config {
@@ -90,6 +91,7 @@ struct CausalSelfAttention {
     num_key_value_heads: usize,
     head_dim: usize,
     cache: Cache,
+    use_flash_attn: bool,
 }
 
 impl CausalSelfAttention {
@@ -112,6 +114,7 @@ impl CausalSelfAttention {
             num_attention_heads: cfg.num_attention_heads,
             num_key_value_heads: cfg.num_key_value_heads,
             head_dim: cfg.hidden_size / cfg.num_attention_heads,
+            use_flash_attn: cfg.use_flash_attn,
             cache: cache.clone(),
         })
     }
@@ -159,12 +162,18 @@ impl CausalSelfAttention {
         let k = self.repeat_kv(k)?;
         let v = self.repeat_kv(v)?;
 
-        let y = {
+        let y = if self.use_flash_attn {
+            // flash-attn expects (b_sz, seq_len, nheads, head_dim)
+            let q = q.transpose(1, 2)?;
+            let k = k.transpose(1, 2)?;
+            let v = v.transpose(1, 2)?;
+            let softmax_scale = 1f32 / (self.head_dim as f32).sqrt();
+            flash_attn(&q, &k, &v, softmax_scale, seq_len > 1)?.transpose(1, 2)?
+        } else {
             let in_dtype = q.dtype();
             let q = q.to_dtype(DType::F32)?;
             let k = k.to_dtype(DType::F32)?;
             let v = v.to_dtype(DType::F32)?;
-
             let att = (q.matmul(&k.t()?)? / (self.head_dim as f64).sqrt())?;
             let mask = self.cache.mask(seq_len)?.broadcast_as(att.shape())?;
             let att = masked_fill(&att, &mask, f32::NEG_INFINITY)?;
@@ -288,7 +297,7 @@ impl Gpt {
         let wte = embedding(cfg.vocab_size, cfg.hidden_size, vb.pp("token"))?;
         let lm_head = candle_nn::linear(cfg.hidden_size, cfg.vocab_size, vb.pp("lm_head"))?;
         let lnf = candle_nn::rms_norm(cfg.hidden_size, cfg.rms_norm_eps, vb.pp("norm"))?;
-        let blocks: Vec<_> = (0..cfg.num_hidden_layers)
+        let blocks = (0..cfg.num_hidden_layers)
             .map(|i| Block::init(vb.pp(&format!("model.layers.{i}")), cache, cfg).unwrap())
             .collect();
         Ok(Self {
@@ -342,4 +351,20 @@ fn masked_fill(on_false: &Tensor, mask: &Tensor, on_true: f32) -> Result<Tensor>
     let on_true = Tensor::new(on_true, on_false.device())?.broadcast_as(shape.dims())?;
     let m = mask.where_cond(&on_true, on_false)?;
     Ok(m)
+}
+
+#[cfg(feature = "flash-attn")]
+fn flash_attn(
+    q: &Tensor,
+    k: &Tensor,
+    v: &Tensor,
+    softmax_scale: f32,
+    causal: bool,
+) -> Result<Tensor> {
+    candle_flash_attn::flash_attn(q, k, v, softmax_scale, causal)
+}
+
+#[cfg(not(feature = "flash-attn"))]
+fn flash_attn(_: &Tensor, _: &Tensor, _: &Tensor, _: f32, _: bool) -> Result<Tensor> {
+    unimplemented!("compile with '--features flash-attn'")
 }
