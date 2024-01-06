@@ -8,7 +8,7 @@ use candle_nn::{AdamW, Optimizer, ParamsAdamW, VarBuilder, VarMap};
 
 use crate::util::{create_block, split_data};
 
-static BATCH_SIZE: usize = 8;
+static BATCH_SIZE: usize = 32;
 static BLOCK_SIZE: usize = 128;
 
 static VOCAB_SIZE: usize = 50254;
