@@ -8,7 +8,7 @@ use candle_nn::{AdamW, Optimizer, ParamsAdamW, VarBuilder, VarMap};
 
 use crate::util::{create_block, split_data};
 
-static BATCH_SIZE: usize = 1;
+static BATCH_SIZE: usize = 64;
 static BLOCK_SIZE: usize = 128;
 
 static VOCAB_SIZE: usize = 50254;
@@ -21,8 +21,8 @@ static ROPE_THETA: f32 = 100_000.0;
 static NORM_EPS: f64 = 1e-6;
 
 pub fn train() -> Result<()> {
-    let device = Device::Cpu;
-    // let device = Device::new_metal(0)?;
+    // let device = Device::Cpu;
+    let device = Device::new_metal(0)?;
     // let device = Device::new_cuda(0)?;
     // println!("{:?}", &device);
 
