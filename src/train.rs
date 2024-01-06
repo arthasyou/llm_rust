@@ -71,7 +71,6 @@ pub fn train() -> Result<()> {
     println!("String looping.......");
 
     for step in 0..100000 {
-        println!("Step: {:?}   ", step);
         let batch = train_blocks.get_batch(BATCH_SIZE, &device);
         // println!("X: {:?}", &batch.x);
         let logits = model.forward(&batch.x, 0)?;
