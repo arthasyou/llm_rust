@@ -48,47 +48,47 @@ pub fn train() -> Result<()> {
     let cache = Cache::new(false, &cfg, DType::F32, &device)?;
     // println!("{:?}", cache);
 
-    // let varmap = VarMap::new();
-    // let vb = VarBuilder::from_varmap(&varmap, DType::F32, &device);
-    // let model = Gpt::init(vb, &cache, &cfg)?;
+    let varmap = VarMap::new();
+    let vb = VarBuilder::from_varmap(&varmap, DType::F32, &device);
+    let model = Gpt::init(vb, &cache, &cfg)?;
 
-    // println!("{:?}", model);
+    println!("{:?}", model);
 
-    // let (encoder, decoder) = tokenization(&chars);
-    // let data = encode(&text, &encoder);
-    // let (train_data, val_data) = split_data(data);
-    // let train_blocks = create_block(train_data, BLOCK_SIZE);
+    let (encoder, decoder) = tokenization(&chars);
+    let data = encode(&text, &encoder);
+    let (train_data, val_data) = split_data(data);
+    let train_blocks = create_block(train_data, BLOCK_SIZE);
 
-    // println!("String traing.........");
+    println!("String traing.........");
 
-    // // training
-    // let params = ParamsAdamW {
-    //     lr: 1e-4,
-    //     ..Default::default()
-    // };
-    // let mut opt = AdamW::new(varmap.all_vars(), params).unwrap();
+    // training
+    let params = ParamsAdamW {
+        lr: 1e-4,
+        ..Default::default()
+    };
+    let mut opt = AdamW::new(varmap.all_vars(), params).unwrap();
 
-    // println!("String looping.......");
+    println!("String looping.......");
 
-    // for step in 0..10000 {
-    //     println!("Step: {:?}   ", step);
-    //     let batch = train_blocks.get_batch(BATCH_SIZE, &device);
-    //     // println!("X: {:?}", &batch.x);
-    //     let logits = model.forward(&batch.x, 0)?;
-    //     // println!("Step: ++2{:?}", step);
+    for step in 0..10000 {
+        println!("Step: {:?}   ", step);
+        let batch = train_blocks.get_batch(BATCH_SIZE, &device);
+        // println!("X: {:?}", &batch.x);
+        let logits = model.forward(&batch.x, 0)?;
+        // println!("Step: ++2{:?}", step);
 
-    //     let loss = candle_nn::loss::cross_entropy(&logits, &batch.y.flatten_to(1)?)?;
-    //     // println!("Step: ++3{:?}", step);
+        let loss = candle_nn::loss::cross_entropy(&logits, &batch.y.flatten_to(1)?)?;
+        // println!("Step: ++3{:?}", step);
 
-    //     opt.backward_step(&loss).unwrap();
-    //     // println!("Step: ++4{:?}", step);
-    //     println!("{step} {}", loss.to_vec0::<f32>().unwrap());
-    //     // if step % 100 == 0 {
-    //     //     println!("{step} {}", loss.to_vec0::<f32>().unwrap());
-    //     // }
-    // }
+        opt.backward_step(&loss).unwrap();
+        // println!("Step: ++4{:?}", step);
+        println!("{step} {}", loss.to_vec0::<f32>().unwrap());
+        // if step % 100 == 0 {
+        //     println!("{step} {}", loss.to_vec0::<f32>().unwrap());
+        // }
+    }
 
-    // println!("{:?}", varmap.all_vars());
-    // varmap.save("outputs/checkpoint.safetensors").unwrap();
+    println!("{:?}", varmap.all_vars());
+    varmap.save("outputs/checkpoint.safetensors").unwrap();
     Ok(())
 }

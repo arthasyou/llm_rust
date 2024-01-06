@@ -47,11 +47,6 @@ impl Cache {
 
         let theta = Tensor::new(theta.as_slice(), device)?;
 
-        let a = theta.reshape((1, theta.elem_count())).unwrap();
-
-        println!("theta: {}", theta);
-        println!("a: {}", a);
-
         let idx_theta = Tensor::arange(0, MAX_SEQ_LEN as u32, device)?
             .to_dtype(DType::F32)?
             .reshape((MAX_SEQ_LEN, 1))?
