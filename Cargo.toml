@@ -18,8 +18,8 @@ num_cpus = "1.16.0"
 
 rand = "0.8.5"
 rayon = "1.8.0"
-serde = { version = "1.0.193", features = ["derive"] }
-thiserror = "1.0.53"
+serde = { version = "1.0.195", features = ["derive"] }
+thiserror = "1.0.56"
 
 
 [dev-dependencies]
