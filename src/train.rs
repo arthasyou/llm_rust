@@ -70,7 +70,7 @@ pub fn train() -> Result<()> {
 
     println!("String looping.......");
 
-    for step in 0..10000 {
+    for step in 0..100000 {
         println!("Step: {:?}   ", step);
         let batch = train_blocks.get_batch(BATCH_SIZE, &device);
         // println!("X: {:?}", &batch.x);
@@ -82,10 +82,10 @@ pub fn train() -> Result<()> {
 
         opt.backward_step(&loss).unwrap();
         // println!("Step: ++4{:?}", step);
-        println!("{step} {}", loss.to_vec0::<f32>().unwrap());
-        // if step % 100 == 0 {
-        //     println!("{step} {}", loss.to_vec0::<f32>().unwrap());
-        // }
+        // println!("{step} {}", loss.to_vec0::<f32>().unwrap());
+        if step % 100 == 0 {
+            println!("{step} {}", loss.to_vec0::<f32>().unwrap());
+        }
     }
 
     println!("{:?}", varmap.all_vars());
