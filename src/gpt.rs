@@ -310,13 +310,15 @@ impl Gpt {
 
     pub fn forward(&self, x: &Tensor, index_pos: usize) -> Result<Tensor> {
         // println!("going here line: {}", line!());
-        let (_batch_size, seq_len) = x.dims2()?;
+        // let (batch_size, seq_len) = x.dims2()?;
         let mut x = self.wte.forward(x)?;
         for (block_idx, block) in self.blocks.iter().enumerate() {
             x = block.forward(&x, index_pos, block_idx)?;
         }
         let x = self.lnf.forward(&x)?;
-        let x = x.i((.., seq_len - 1, ..))?;
+        let (batch_size, seq_len, c) = x.dims3()?;
+        // let x = x.i((.., seq_len - 1, ..))?;
+        let x = x.reshape((batch_size * seq_len, c))?;
         let logits = self.lm_head.forward(&x)?;
         logits.to_dtype(DType::F32).map_err(|e| Error::Norm {
             message: e.to_string(),

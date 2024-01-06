@@ -8,7 +8,7 @@ use candle_nn::{AdamW, Optimizer, ParamsAdamW, VarBuilder, VarMap};
 
 use crate::util::{create_block, split_data};
 
-static BATCH_SIZE: usize = 32;
+static BATCH_SIZE: usize = 1;
 static BLOCK_SIZE: usize = 128;
 
 static VOCAB_SIZE: usize = 50254;
@@ -21,8 +21,8 @@ static ROPE_THETA: f32 = 100_000.0;
 static NORM_EPS: f64 = 1e-6;
 
 pub fn train() -> Result<()> {
-    // let device = Device::Cpu;
-    let device = Device::new_metal(0)?;
+    let device = Device::Cpu;
+    // let device = Device::new_metal(0)?;
     // let device = Device::new_cuda(0)?;
     // println!("{:?}", &device);
 
@@ -75,6 +75,9 @@ pub fn train() -> Result<()> {
         // println!("X: {:?}", &batch.x);
         let logits = model.forward(&batch.x, 0)?;
         // println!("Step: ++2{:?}", step);
+
+        // println!("logits: {}", &logits);
+        // println!("y: {}", &batch.y);
 
         let loss = candle_nn::loss::cross_entropy(&logits, &batch.y.flatten_to(1)?)?;
         // println!("Step: ++3{:?}", step);

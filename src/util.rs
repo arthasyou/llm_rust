@@ -116,19 +116,19 @@ pub fn create_block(data: Vec<u32>, block_size: usize) -> Block {
         .take(size.saturating_sub(1))
         .map(|w| w.to_vec())
         .collect();
-    // let y: Vec<Vec<u32>> = windows.iter().skip(1).map(|w| w.to_vec()).collect();
-    let y: Vec<Vec<u32>> = windows
-        .iter()
-        .skip(1)
-        .map(|w| {
-            // 检查内部向量是否为空
-            if let Some(&last) = w.last() {
-                vec![last]
-            } else {
-                vec![] // 或者可以用其他方式处理空向量
-            }
-        })
-        .collect();
+    let y: Vec<Vec<u32>> = windows.iter().skip(1).map(|w| w.to_vec()).collect();
+    // let y: Vec<Vec<u32>> = windows
+    //     .iter()
+    //     .skip(1)
+    //     .map(|w| {
+    //         // 检查内部向量是否为空
+    //         if let Some(&last) = w.last() {
+    //             vec![last]
+    //         } else {
+    //             vec![] // 或者可以用其他方式处理空向量
+    //         }
+    //     })
+    //     .collect();
 
     Block {
         x,
