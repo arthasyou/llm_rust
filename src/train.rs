@@ -18,6 +18,8 @@ pub fn run() -> Result<()> {
     // preparing data
     // ================================================================
 
+    println!("preparing data........");
+
     let tokenizer = Tokenizer::from_file("tokenizers/yi/tokenizer.json").unwrap();
 
     let train_text = crate::util::load_txt_files("data/txt/train").unwrap();
@@ -33,8 +35,10 @@ pub fn run() -> Result<()> {
     //     Tensor::from_slice(valid_tokens.get_ids(), valid_tokens.len(), &device).unwrap();
 
     // ================================================================
-    // init model
+    // initialize model
     // ================================================================
+
+    println!("initializing model........");
 
     let varmap = VarMap::new();
     let vb = VarBuilder::from_varmap(&varmap, DType::F32, &device);
@@ -45,6 +49,8 @@ pub fn run() -> Result<()> {
     // ================================================================
     // training
     // ================================================================
+
+    println!("starting trainning........");
 
     let params = ParamsAdamW {
         lr: 1e-4,
