@@ -1,12 +1,12 @@
 use crate::error::{Error, Result};
 use crate::models::yi::{Config, Model};
-use crate::util::Batch;
+use crate::util::{self, Batch};
 use candle_core::{DType, Device, Tensor};
 use candle_nn::{AdamW, Optimizer, ParamsAdamW, VarBuilder, VarMap};
 use tokenizers::Tokenizer;
 
 static BATCH_SIZE: usize = 4;
-static BLOCK_SIZE: usize = 128;
+static BLOCK_SIZE: usize = 2048;
 
 pub fn run() -> Result<()> {
     // let device = Device::Cpu;
@@ -41,9 +41,14 @@ pub fn run() -> Result<()> {
     println!("initializing model........");
 
     let varmap = VarMap::new();
-    let vb = VarBuilder::from_varmap(&varmap, DType::F32, &device);
+    let paths = [
+        "/Users/you/Downloads/Yi/Yi-6B/model-00001-of-00002.safetensors",
+        "/Users/you/Downloads/Yi/Yi-6B/model-00002-of-00002.safetensors",
+    ];
+    let vb = util::from_mmaped_safetensors(&varmap, &paths, DType::F32, &device, false).unwrap();
+    // let vb = VarBuilder::from_varmap(&varmap, DType::F32, &device);
 
-    let config = Config::config_1b();
+    let config = Config::config_6b();
     let mut model = Model::new(&config, vb).unwrap();
 
     // ================================================================
