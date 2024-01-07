@@ -78,10 +78,10 @@ pub fn run() -> Result<()> {
 
         opt.backward_step(&loss).unwrap();
         // println!("Step: ++4{:?}", step);
-        // println!("{step} {}", loss.to_vec0::<f32>().unwrap());
-        if step % 5 == 0 {
-            println!("{step} {}", loss.to_vec0::<f32>().unwrap());
-        }
+        println!("{step} {}", loss.to_vec0::<f32>().unwrap());
+        // if step % 5 == 0 {
+        //     println!("{step} {}", loss.to_vec0::<f32>().unwrap());
+        // }
     }
 
     println!("{:?}", varmap.all_vars());
