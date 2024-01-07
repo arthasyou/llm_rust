@@ -48,7 +48,7 @@ pub fn run() -> Result<()> {
     let vb = util::from_mmaped_safetensors(&varmap, &paths, DType::F32, &device, false).unwrap();
     // let vb = VarBuilder::from_varmap(&varmap, DType::F32, &device);
 
-    let config = Config::config_6b();
+    let config = Config::config_1b();
     let mut model = Model::new(&config, vb).unwrap();
 
     // ================================================================
