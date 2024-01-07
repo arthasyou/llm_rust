@@ -22,15 +22,15 @@ impl Config {
     pub fn config_1b() -> Self {
         Self {
             vocab_size: 64000,
-            hidden_size: 128,
-            intermediate_size: 256,
-            num_hidden_layers: 4,
-            num_attention_heads: 4,
+            hidden_size: 1024,
+            intermediate_size: 2048,
+            num_hidden_layers: 16,
+            num_attention_heads: 16,
             num_key_value_heads: 2,
             hidden_act: Activation::Silu,
-            max_position_embeddings: 4096,
-            rms_norm_eps: 1e-5,
-            rope_theta: 5_000_000.,
+            max_position_embeddings: 2048,
+            rms_norm_eps: 1e-6,
+            rope_theta: 1_000_000.,
         }
     }
 
@@ -280,7 +280,7 @@ impl Attention {
                 (key_states, value_states)
             }
         };
-        self.kv_cache = Some((key_states.clone(), value_states.clone()));
+        // self.kv_cache = Some((key_states.clone(), value_states.clone()));
 
         let key_states = self.repeat_kv(key_states).unwrap();
         let value_states = self.repeat_kv(value_states).unwrap();
