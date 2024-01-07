@@ -1,7 +1,7 @@
 mod error;
 mod generation;
 mod models;
-mod token;
+// mod token;
 mod train;
 mod util;
 
@@ -13,6 +13,5 @@ fn main() {
     //     .build_global()
     //     .unwrap();
 
-    // train::train().unwrap();
-    token::run();
+    train::run().unwrap();
 }
