@@ -9,8 +9,8 @@ static BATCH_SIZE: usize = 4;
 static BLOCK_SIZE: usize = 128;
 
 pub fn run() -> Result<()> {
-    // let device = Device::Cpu;
-    let device = Device::new_metal(0)?;
+    let device = Device::Cpu;
+    // let device = Device::new_metal(0)?;
     // let device = Device::new_cuda(0)?;
     // println!("{:?}", &device);
 
@@ -61,7 +61,7 @@ pub fn run() -> Result<()> {
     for step in 0..1000 {
         let batch = Batch::get_batch(&train_data, BLOCK_SIZE, BATCH_SIZE);
         // println!("X: {:?}", &batch.x);
-        let logits = model.forward(&batch.x, 0)?;
+        let logits = model.forward(&batch.x, 0).unwrap();
         // println!("Step: ++2{:?}", step);
 
         println!("logits: {}", &logits);
