@@ -64,8 +64,8 @@ pub fn run() -> Result<()> {
         let logits = model.forward(&batch.x, 0)?;
         // println!("Step: ++2{:?}", step);
 
-        // println!("logits: {}", &logits);
-        // println!("y: {}", &batch.y);
+        println!("logits: {}", &logits);
+        println!("y: {}", &batch.y);
 
         let loss = candle_nn::loss::cross_entropy(&logits, &batch.y.flatten_to(1)?)?;
         // println!("Step: ++3{:?}", step);
