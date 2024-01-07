@@ -297,7 +297,10 @@ impl Attention {
                 None => attn_weights,
                 Some(mask) => attn_weights.broadcast_add(mask).unwrap(),
             };
+
+            println!("attn_weights: {:?}", attn_weights);
             let attn_weights = candle_nn::ops::softmax_last_dim(&attn_weights).unwrap();
+
             attn_weights.matmul(&value_states).unwrap()
         };
         attn_output
