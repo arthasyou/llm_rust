@@ -43,7 +43,7 @@ pub fn run() -> Result<()> {
     let varmap = VarMap::new();
     let vb = VarBuilder::from_varmap(&varmap, DType::F32, &device);
 
-    let config = Config::config_6b();
+    let config = Config::config_1b();
     let mut model = Model::new(&config, vb).unwrap();
 
     // ================================================================
