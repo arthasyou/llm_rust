@@ -1,5 +1,8 @@
 use crate::error::{Error, Result};
+use candle_core::{DType, Device, Var};
 use candle_core::{IndexOp, Tensor};
+use candle_nn::var_builder::{SimpleBackend, VarBuilderArgs};
+use candle_nn::{VarBuilder, VarMap};
 use rand::thread_rng;
 use rand::Rng;
 use std::{
@@ -8,6 +11,7 @@ use std::{
     io::Read,
     path::Path,
 };
+use tqdm::Iter;
 use walkdir::WalkDir;
 
 pub fn sorted_char(text: &str) -> Vec<char> {
@@ -135,4 +139,40 @@ pub fn load_txt_files<P: AsRef<Path>>(path: P) -> Result<String> {
     }
 
     Ok(contents)
+}
+
+/// Load tensors into a VarBuilder backed by a VarMap using MmapedSafetensors.
+/// Set `silent` to not show a progress bar.
+pub fn from_mmaped_safetensors<'a, P: AsRef<Path>>(
+    map: &VarMap,
+    paths: &[P],
+    dtype: DType,
+    device: &Device,
+    silent: bool,
+) -> Result<VarBuilderArgs<'a, Box<dyn SimpleBackend>>> {
+    {
+        let mut ws = map.data().lock().unwrap();
+
+        let tensors = unsafe { candle_core::safetensors::MmapedSafetensors::multi(paths)? };
+
+        if silent {
+            for (name, _) in tensors.tensors() {
+                let tensor = tensors
+                    .load(&name, device)?
+                    .to_device(device)?
+                    .to_dtype(dtype)?;
+                ws.insert(name.clone(), Var::from_tensor(&tensor)?);
+            }
+        } else {
+            for (name, _) in tensors.tensors().iter().tqdm() {
+                let tensor = tensors
+                    .load(name, device)?
+                    .to_device(device)?
+                    .to_dtype(dtype)?;
+                ws.insert(name.clone(), Var::from_tensor(&tensor)?);
+            }
+        };
+    }
+
+    Ok(VarBuilder::from_varmap(&map, dtype, device))
 }

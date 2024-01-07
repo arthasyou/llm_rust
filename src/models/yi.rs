@@ -19,6 +19,21 @@ pub struct Config {
 }
 
 impl Config {
+    pub fn config_1b() -> Self {
+        Self {
+            vocab_size: 64000,
+            hidden_size: 32,
+            intermediate_size: 64,
+            num_hidden_layers: 4,
+            num_attention_heads: 4,
+            num_key_value_heads: 1,
+            hidden_act: Activation::Silu,
+            max_position_embeddings: 4096,
+            rms_norm_eps: 1e-5,
+            rope_theta: 5_000_000.,
+        }
+    }
+
     pub fn config_6b() -> Self {
         Self {
             vocab_size: 64000,
@@ -242,7 +257,7 @@ impl Attention {
                 (key_states, value_states)
             }
         };
-        self.kv_cache = Some((key_states.clone(), value_states.clone()));
+        // self.kv_cache = Some((key_states.clone(), value_states.clone()));
 
         let key_states = self.repeat_kv(key_states)?;
         let value_states = self.repeat_kv(value_states)?;
@@ -319,10 +334,12 @@ pub struct Model {
 
 impl Model {
     pub fn new(cfg: &Config, vb: VarBuilder) -> Result<Self> {
+        let device = vb.device();
+        // println!("device: {device:?}");
         let vb_m = vb.pp("model");
         let embed_tokens =
             candle_nn::embedding(cfg.vocab_size, cfg.hidden_size, vb_m.pp("embed_tokens"))?;
-        let rotary_emb = Arc::new(RotaryEmbedding::new(vb.dtype(), cfg, vb_m.device())?);
+        let rotary_emb = Arc::new(RotaryEmbedding::new(vb.dtype(), cfg, device)?);
         let mut layers = Vec::with_capacity(cfg.num_hidden_layers);
         let vb_l = vb_m.pp("layers");
         for layer_idx in 0..cfg.num_hidden_layers {
@@ -336,7 +353,7 @@ impl Model {
             layers,
             norm,
             lm_head,
-            device: vb.device().clone(),
+            device: device.clone(),
             dtype: vb.dtype(),
         })
     }
@@ -375,7 +392,9 @@ impl Model {
             xs = layer.forward(&xs, attention_mask.as_ref(), seqlen_offset)?
         }
 
-        xs.apply(&self.norm)?.apply(&self.lm_head)
+        let xs = xs.apply(&self.norm)?.apply(&self.lm_head)?;
+        let (b, t, c) = xs.dims3()?;
+        xs.reshape((b * t, c))
         // xs.narrow(1, seq_len - 1, 1)?
         //     .apply(&self.norm)?
         //     .apply(&self.lm_head)
