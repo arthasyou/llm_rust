@@ -22,11 +22,11 @@ impl Config {
     pub fn config_1b() -> Self {
         Self {
             vocab_size: 64000,
-            hidden_size: 32,
-            intermediate_size: 64,
+            hidden_size: 128,
+            intermediate_size: 256,
             num_hidden_layers: 4,
             num_attention_heads: 4,
-            num_key_value_heads: 1,
+            num_key_value_heads: 2,
             hidden_act: Activation::Silu,
             max_position_embeddings: 4096,
             rms_norm_eps: 1e-5,

@@ -6,7 +6,7 @@ use candle_nn::{AdamW, Optimizer, ParamsAdamW, VarBuilder, VarMap};
 use tokenizers::Tokenizer;
 
 static BATCH_SIZE: usize = 4;
-static BLOCK_SIZE: usize = 2048;
+static BLOCK_SIZE: usize = 128;
 
 pub fn run() -> Result<()> {
     // let device = Device::Cpu;
