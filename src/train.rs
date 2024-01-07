@@ -18,12 +18,14 @@ pub fn run() -> Result<()> {
     // preparing data
     // ================================================================
 
-    let tokenizer = Tokenizer::from_file("/Users/yousx/models/yi/tokenizer.json").unwrap();
+    let tokenizer = Tokenizer::from_file("tokenizers/yi/tokenizer.json").unwrap();
 
     let train_text = crate::util::load_txt_files("data/txt/train").unwrap();
     let train_tokens = tokenizer.encode(train_text, true).unwrap();
     let train_data =
         Tensor::from_slice(train_tokens.get_ids(), train_tokens.len(), &device).unwrap();
+
+    // println!("ok");
 
     // let valid_text = crate::util::load_txt_files("data/txt/valid").unwrap();
     // let valid_tokens = tokenizer.encode(valid_text, true).unwrap();
