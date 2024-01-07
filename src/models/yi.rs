@@ -280,7 +280,7 @@ impl Attention {
                 (key_states, value_states)
             }
         };
-        // self.kv_cache = Some((key_states.clone(), value_states.clone()));
+        self.kv_cache = Some((key_states.clone(), value_states.clone()));
 
         let key_states = self.repeat_kv(key_states).unwrap();
         let value_states = self.repeat_kv(value_states).unwrap();
