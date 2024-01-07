@@ -7,10 +7,10 @@ edition = "2021"
 
 [dependencies]
 
-candle-core = { git = "https://github.com/huggingface/candle.git", version = "0.3.3", features = [
-    "metal",
-] }
-# candle-core = { git = "https://github.com/huggingface/candle.git", version = "0.3.3", features = ["cuda"]}
+# candle-core = { git = "https://github.com/huggingface/candle.git", version = "0.3.3", features = [
+#     "metal",
+# ] }
+candle-core = { git = "https://github.com/huggingface/candle.git", version = "0.3.3", features = ["cuda"]}
 candle-nn = { git = "https://github.com/huggingface/candle.git", version = "0.3.2" }
 chrono = "0.4.31"
 num_cpus = "1.16.0"
