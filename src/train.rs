@@ -41,12 +41,12 @@ pub fn run() -> Result<()> {
     println!("initializing model........");
 
     let varmap = VarMap::new();
-    let paths = [
-        "/Users/you/Downloads/Yi/Yi-6B/model-00001-of-00002.safetensors",
-        "/Users/you/Downloads/Yi/Yi-6B/model-00002-of-00002.safetensors",
-    ];
-    let vb = util::from_mmaped_safetensors(&varmap, &paths, DType::F32, &device, false).unwrap();
-    // let vb = VarBuilder::from_varmap(&varmap, DType::F32, &device);
+    // let paths = [
+    //     "/Users/you/Downloads/Yi/Yi-6B/model-00001-of-00002.safetensors",
+    //     "/Users/you/Downloads/Yi/Yi-6B/model-00002-of-00002.safetensors",
+    // ];
+    // let vb = util::from_mmaped_safetensors(&varmap, &paths, DType::F32, &device, false).unwrap();
+    let vb = VarBuilder::from_varmap(&varmap, DType::F32, &device);
 
     let config = Config::config_1b();
     let mut model = Model::new(&config, vb).unwrap();
