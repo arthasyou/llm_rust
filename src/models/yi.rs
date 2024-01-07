@@ -299,7 +299,7 @@ impl Attention {
             };
 
             // println!("attn_weights: {:?}", attn_weights);
-            // let attn_weights = candle_nn::ops::softmax_last_dim(&attn_weights).unwrap();
+            let attn_weights = candle_nn::ops::softmax_last_dim(&attn_weights).unwrap();
 
             attn_weights.matmul(&value_states).unwrap()
         };
@@ -428,6 +428,7 @@ impl Model {
             Some(mask)
         };
         let mut xs = self.embed_tokens.forward(input_ids).unwrap();
+
         for layer in self.layers.iter_mut() {
             xs = layer
                 .forward(&xs, attention_mask.as_ref(), seqlen_offset)

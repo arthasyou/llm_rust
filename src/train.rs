@@ -9,8 +9,8 @@ static BATCH_SIZE: usize = 4;
 static BLOCK_SIZE: usize = 128;
 
 pub fn run() -> Result<()> {
-    // let device = Device::Cpu;
-    let device = Device::new_metal(0)?;
+    let device = Device::Cpu;
+    // let device = Device::new_metal(0)?;
     // let device = Device::new_cuda(0)?;
     // println!("{:?}", &device);
 
@@ -67,15 +67,16 @@ pub fn run() -> Result<()> {
         // println!("logits: {}", &logits);
         // println!("y: {}", &batch.y);
 
-        let loss = candle_nn::loss::cross_entropy(&logits, &batch.y.flatten_to(1)?)?;
+        let loss =
+            candle_nn::loss::cross_entropy(&logits, &batch.y.reshape(BATCH_SIZE * BLOCK_SIZE)?)?;
         // println!("Step: ++3{:?}", step);
 
         opt.backward_step(&loss).unwrap();
         // println!("Step: ++4{:?}", step);
-        // println!("{step} {}", loss.to_vec0::<f32>().unwrap());
-        if step % 5 == 0 {
-            println!("{step} {}", loss.to_vec0::<f32>().unwrap());
-        }
+        println!("{step} {}", loss.to_vec0::<f32>().unwrap());
+        // if step % 5 == 0 {
+        //     println!("{step} {}", loss.to_vec0::<f32>().unwrap());
+        // }
     }
 
     println!("{:?}", varmap.all_vars());
