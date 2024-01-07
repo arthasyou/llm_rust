@@ -1,6 +1,7 @@
 mod error;
 mod generation;
-mod gpt;
+mod models;
+mod token;
 mod train;
 mod util;
 
@@ -12,5 +13,6 @@ fn main() {
     //     .build_global()
     //     .unwrap();
 
-    train::train().unwrap();
+    // train::train().unwrap();
+    token::run();
 }

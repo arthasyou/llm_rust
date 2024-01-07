@@ -1,24 +1,12 @@
 use crate::error::{Error, Result};
-use crate::gpt::{Config, Gpt};
-// use crate::models::bigram::Bigram;
-use crate::gpt::Cache;
-use crate::util::{decode, encode, load_txt_file, sorted_char, tokenization};
+use crate::models::yi::{Config, Model};
+use crate::util::Batch;
 use candle_core::{DType, Device, Tensor};
 use candle_nn::{AdamW, Optimizer, ParamsAdamW, VarBuilder, VarMap};
+use tokenizers::Tokenizer;
 
-use crate::util::{create_block, split_data};
-
-static BATCH_SIZE: usize = 64;
-static BLOCK_SIZE: usize = 128;
-
-static VOCAB_SIZE: usize = 50254;
-static HIDDEN_SIZE: usize = 256;
-static INTERMEDIATE_SIZE: usize = 512;
-static HIDDEN_LAYER: usize = 2;
-static ATTENTION_HEADS: usize = 4;
-static KEY_VALUE_HEADS: usize = 4;
-static ROPE_THETA: f32 = 100_000.0;
-static NORM_EPS: f64 = 1e-6;
+static BATCH_SIZE: usize = 4;
+static BLOCK_SIZE: usize = 2048;
 
 pub fn train() -> Result<()> {
     // let device = Device::Cpu;
@@ -26,52 +14,44 @@ pub fn train() -> Result<()> {
     // let device = Device::new_cuda(0)?;
     // println!("{:?}", &device);
 
+    // ================================================================
     // preparing data
-    let text = load_txt_file("data/wizard_of_oz.txt").map_err(|e| Error::Norm {
-        message: e.to_string(),
-    })?;
-    let chars: Vec<char> = sorted_char(&text);
-    let vocab_size = chars.len();
+    // ================================================================
 
-    let cfg = Config {
-        hidden_size: HIDDEN_SIZE,
-        intermediate_size: INTERMEDIATE_SIZE,
-        vocab_size,
-        num_hidden_layers: HIDDEN_LAYER,
-        num_attention_heads: ATTENTION_HEADS,
-        num_key_value_heads: KEY_VALUE_HEADS,
-        use_flash_attn: false,
-        rms_norm_eps: NORM_EPS,
-        rope_theta: ROPE_THETA,
-    };
+    let tokenizer = Tokenizer::from_file("/Users/yousx/models/yi/tokenizer.json").unwrap();
 
-    let cache = Cache::new(false, &cfg, DType::F32, &device)?;
-    // println!("{:?}", cache);
+    let train_text = crate::util::load_txt_files("data/txt/train").unwrap();
+    let train_tokens = tokenizer.encode(train_text, true).unwrap();
+    let train_data =
+        Tensor::from_slice(train_tokens.get_ids(), train_tokens.len(), &device).unwrap();
+
+    // let valid_text = crate::util::load_txt_files("data/txt/valid").unwrap();
+    // let valid_tokens = tokenizer.encode(valid_text, true).unwrap();
+    // let valid_data =
+    //     Tensor::from_slice(valid_tokens.get_ids(), valid_tokens.len(), &device).unwrap();
+
+    // ================================================================
+    // init model
+    // ================================================================
 
     let varmap = VarMap::new();
     let vb = VarBuilder::from_varmap(&varmap, DType::F32, &device);
-    let model = Gpt::init(vb, &cache, &cfg)?;
 
-    println!("{:?}", model);
+    let config = Config::config_6b();
+    let mut model = Model::new(&config, vb).unwrap();
 
-    let (encoder, decoder) = tokenization(&chars);
-    let data = encode(&text, &encoder);
-    let (train_data, val_data) = split_data(data);
-    let train_blocks = create_block(train_data, BLOCK_SIZE);
-
-    println!("String traing.........");
-
+    // ================================================================
     // training
+    // ================================================================
+
     let params = ParamsAdamW {
         lr: 1e-4,
         ..Default::default()
     };
     let mut opt = AdamW::new(varmap.all_vars(), params).unwrap();
 
-    println!("String looping.......");
-
-    for step in 0..100000 {
-        let batch = train_blocks.get_batch(BATCH_SIZE, &device);
+    for step in 0..1000 {
+        let batch = Batch::get_batch(&train_data, BLOCK_SIZE, BATCH_SIZE);
         // println!("X: {:?}", &batch.x);
         let logits = model.forward(&batch.x, 0)?;
         // println!("Step: ++2{:?}", step);
@@ -85,7 +65,7 @@ pub fn train() -> Result<()> {
         opt.backward_step(&loss).unwrap();
         // println!("Step: ++4{:?}", step);
         // println!("{step} {}", loss.to_vec0::<f32>().unwrap());
-        if step % 100 == 0 {
+        if step % 5 == 0 {
             println!("{step} {}", loss.to_vec0::<f32>().unwrap());
         }
     }
