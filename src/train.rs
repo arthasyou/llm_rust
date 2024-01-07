@@ -9,8 +9,8 @@ static BATCH_SIZE: usize = 4;
 static BLOCK_SIZE: usize = 128;
 
 pub fn run() -> Result<()> {
-    let device = Device::Cpu;
-    // let device = Device::new_metal(0)?;
+    // let device = Device::Cpu;
+    let device = Device::new_metal(0)?;
     // let device = Device::new_cuda(0)?;
     // println!("{:?}", &device);
 
