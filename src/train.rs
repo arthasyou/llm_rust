@@ -41,7 +41,7 @@ pub fn run() -> Result<()> {
 
     println!("initializing model........");
 
-    let config = Config::config_1b(false);
+    let config = Config::config_7b(false);
     let cache = Cache::new(false, &config, DType::F32, &device)?;
     let varmap = VarMap::new();
     let paths = [
