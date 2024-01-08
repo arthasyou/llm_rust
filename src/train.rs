@@ -6,8 +6,8 @@ use candle_nn::{AdamW, Optimizer, ParamsAdamW, VarBuilder, VarMap};
 use tokenizers::Tokenizer;
 use tqdm::Iter;
 
-static BATCH_SIZE: usize = 1;
-static BLOCK_SIZE: usize = 512;
+static BATCH_SIZE: usize = 2;
+static BLOCK_SIZE: usize = 1024;
 
 pub fn run() -> Result<()> {
     // let device = Device::Cpu;
