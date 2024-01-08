@@ -9,8 +9,8 @@ use crate::error::{Error, Result};
 use candle_core::{DType, Device, IndexOp, Module, Tensor, D};
 use candle_nn::{embedding, linear, Embedding, Linear, RmsNorm, VarBuilder};
 
-// pub const MAX_SEQ_LEN: usize = 4096;
-pub const MAX_SEQ_LEN: usize = 128;
+pub const MAX_SEQ_LEN: usize = 4096;
+// pub const MAX_SEQ_LEN: usize = 128;
 
 #[derive(Debug)]
 pub struct Config {
@@ -23,6 +23,36 @@ pub struct Config {
     pub use_flash_attn: bool,
     pub rms_norm_eps: f64,
     pub rope_theta: f32,
+}
+
+impl Config {
+    pub fn config_1b(use_flash_attn: bool) -> Self {
+        Self {
+            hidden_size: 4096,
+            intermediate_size: 11008,
+            vocab_size: 50254,
+            num_hidden_layers: 16,
+            num_attention_heads: 32,
+            num_key_value_heads: 32,
+            use_flash_attn,
+            rms_norm_eps: 1e-6,
+            rope_theta: 10_000.0,
+        }
+    }
+
+    pub fn config_7b(use_flash_attn: bool) -> Self {
+        Self {
+            hidden_size: 4096,
+            intermediate_size: 11008,
+            vocab_size: 32000,
+            num_hidden_layers: 32,
+            num_attention_heads: 32,
+            num_key_value_heads: 32,
+            use_flash_attn,
+            rms_norm_eps: 1e-5,
+            rope_theta: 10_000.0,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -285,15 +315,15 @@ impl Block {
 }
 
 #[derive(Debug)]
-pub struct Gpt {
+pub struct Llama {
     wte: Embedding, // wte (World Token embedding)
     blocks: Vec<Block>,
     lnf: RmsNorm, // lnf (Layer Norm final)
     lm_head: Linear,
 }
 
-impl Gpt {
-    pub fn init(vb: VarBuilder, cache: &Cache, cfg: &Config) -> Result<Self> {
+impl Llama {
+    pub fn new(vb: VarBuilder, cache: &Cache, cfg: &Config) -> Result<Self> {
         let wte = embedding(cfg.vocab_size, cfg.hidden_size, vb.pp("token"))?;
         let lm_head = candle_nn::linear(cfg.hidden_size, cfg.vocab_size, vb.pp("lm_head"))?;
         let lnf = candle_nn::rms_norm(cfg.hidden_size, cfg.rms_norm_eps, vb.pp("norm"))?;

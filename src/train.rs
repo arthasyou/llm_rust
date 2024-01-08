@@ -1,5 +1,5 @@
 use crate::error::{Error, Result};
-use crate::models::yi::{Config, Model};
+use crate::models::llama::{Cache, Config, Llama};
 use crate::util::{self, Batch};
 use candle_core::{DType, Device, Tensor};
 use candle_nn::{AdamW, Optimizer, ParamsAdamW, VarBuilder, VarMap};
@@ -40,16 +40,17 @@ pub fn run() -> Result<()> {
 
     println!("initializing model........");
 
+    let config = Config::config_7b(false);
+    let cache = Cache::new(false, &config, DType::F32, &device)?;
     let varmap = VarMap::new();
     // let paths = [
-    //     "/Users/you/Downloads/Yi/Yi-6B/model-00001-of-00002.safetensors",
-    //     "/Users/you/Downloads/Yi/Yi-6B/model-00002-of-00002.safetensors",
+    //     "/Users/you/models/Llama-2-7b-hf/model-00001-of-00002.safetensors",
+    //     "/Users/you/models/Llama-2-7b-hf/model-00002-of-00002.safetensors",
     // ];
     // let vb = util::from_mmaped_safetensors(&varmap, &paths, DType::F32, &device, false).unwrap();
     let vb = VarBuilder::from_varmap(&varmap, DType::F32, &device);
 
-    let config = Config::config_1b();
-    let mut model = Model::new(&config, vb).unwrap();
+    let model = Llama::new(vb, &cache, &config).unwrap();
 
     // ================================================================
     // training
