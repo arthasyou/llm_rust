@@ -64,7 +64,7 @@ pub fn run() -> Result<()> {
     };
     let mut opt = AdamW::new(varmap.all_vars(), params).unwrap();
 
-    for step in 0..1000 {
+    for step in 0..10 {
         let batch = Batch::get_batch(&train_data, BLOCK_SIZE, BATCH_SIZE);
         // println!("X: {:?}", &batch.x);
         let logits = model.forward(&batch.x, 0).unwrap();
