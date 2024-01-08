@@ -5,8 +5,8 @@ use candle_core::{DType, Device, Tensor};
 use candle_nn::{AdamW, Optimizer, ParamsAdamW, VarBuilder, VarMap};
 use tokenizers::Tokenizer;
 
-static BATCH_SIZE: usize = 1;
-static BLOCK_SIZE: usize = 1024;
+static BATCH_SIZE: usize = 2;
+static BLOCK_SIZE: usize = 512;
 
 pub fn run() -> Result<()> {
     // let device = Device::Cpu;
