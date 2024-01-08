@@ -5,8 +5,8 @@ use candle_core::{DType, Device, Tensor};
 use candle_nn::{AdamW, Optimizer, ParamsAdamW, VarBuilder, VarMap};
 use tokenizers::Tokenizer;
 
-static BATCH_SIZE: usize = 2;
-static BLOCK_SIZE: usize = 512;
+static BATCH_SIZE: usize = 1;
+static BLOCK_SIZE: usize = 2048;
 
 pub fn run() -> Result<()> {
     // let device = Device::Cpu;
@@ -20,7 +20,7 @@ pub fn run() -> Result<()> {
 
     println!("preparing data........");
 
-    let tokenizer = Tokenizer::from_file("tokenizers/yi/tokenizer.json").unwrap();
+    let tokenizer = Tokenizer::from_file("tokenizers/llama/tokenizer.json").unwrap();
 
     let train_text = crate::util::load_txt_files("data/txt/train").unwrap();
     let train_tokens = tokenizer.encode(train_text, true).unwrap();
