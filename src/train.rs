@@ -44,12 +44,12 @@ pub fn run() -> Result<()> {
     let config = Config::config_1b(false);
     let cache = Cache::new(false, &config, DType::F32, &device)?;
     let varmap = VarMap::new();
-    // let paths = [
-    //     "/Users/you/models/Llama-2-7b-hf/model-00001-of-00002.safetensors",
-    //     "/Users/you/models/Llama-2-7b-hf/model-00002-of-00002.safetensors",
-    // ];
-    // let vb = util::from_mmaped_safetensors(&varmap, &paths, DType::F32, &device, false).unwrap();
-    let vb = VarBuilder::from_varmap(&varmap, DType::F32, &device);
+    let paths = [
+        "/Users/you/models/Llama-2-7b-hf/model-00001-of-00002.safetensors",
+        "/Users/you/models/Llama-2-7b-hf/model-00002-of-00002.safetensors",
+    ];
+    let vb = util::from_mmaped_safetensors(&varmap, &paths, DType::F32, &device, false).unwrap();
+    // let vb = VarBuilder::from_varmap(&varmap, DType::F32, &device);
 
     let model = Llama::new(vb, &cache, &config).unwrap();
 
