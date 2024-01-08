@@ -28,12 +28,12 @@ pub struct Config {
 impl Config {
     pub fn config_1b(use_flash_attn: bool) -> Self {
         Self {
-            hidden_size: 4096,
-            intermediate_size: 11008,
-            vocab_size: 50254,
-            num_hidden_layers: 16,
-            num_attention_heads: 32,
-            num_key_value_heads: 32,
+            hidden_size: 256,
+            intermediate_size: 512,
+            vocab_size: 32000,
+            num_hidden_layers: 2,
+            num_attention_heads: 4,
+            num_key_value_heads: 4,
             use_flash_attn,
             rms_norm_eps: 1e-6,
             rope_theta: 10_000.0,

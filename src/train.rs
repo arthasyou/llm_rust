@@ -4,6 +4,7 @@ use crate::util::{self, Batch};
 use candle_core::{DType, Device, Tensor};
 use candle_nn::{AdamW, Optimizer, ParamsAdamW, VarBuilder, VarMap};
 use tokenizers::Tokenizer;
+use tqdm::Iter;
 
 static BATCH_SIZE: usize = 1;
 static BLOCK_SIZE: usize = 2048;
@@ -20,7 +21,7 @@ pub fn run() -> Result<()> {
 
     println!("preparing data........");
 
-    let tokenizer = Tokenizer::from_file("tokenizers/yi/tokenizer.json").unwrap();
+    let tokenizer = Tokenizer::from_file("tokenizers/meta_llama/tokenizer.json").unwrap();
 
     let train_text = crate::util::load_txt_files("data/txt/train").unwrap();
     let train_tokens = tokenizer.encode(train_text, true).unwrap();
@@ -40,15 +41,15 @@ pub fn run() -> Result<()> {
 
     println!("initializing model........");
 
-    let config = Config::config_7b(false);
+    let config = Config::config_1b(false);
     let cache = Cache::new(false, &config, DType::F32, &device)?;
     let varmap = VarMap::new();
-    let paths = [
-        "/Users/you/models/Llama-2-7b-hf/model-00001-of-00002.safetensors",
-        "/Users/you/models/Llama-2-7b-hf/model-00002-of-00002.safetensors",
-    ];
-    let vb = util::from_mmaped_safetensors(&varmap, &paths, DType::F32, &device, false).unwrap();
-    // let vb = VarBuilder::from_varmap(&varmap, DType::F32, &device);
+    // let paths = [
+    //     "/Users/you/models/Llama-2-7b-hf/model-00001-of-00002.safetensors",
+    //     "/Users/you/models/Llama-2-7b-hf/model-00002-of-00002.safetensors",
+    // ];
+    // let vb = util::from_mmaped_safetensors(&varmap, &paths, DType::F32, &device, false).unwrap();
+    let vb = VarBuilder::from_varmap(&varmap, DType::F32, &device);
 
     let model = Llama::new(vb, &cache, &config).unwrap();
 
@@ -64,7 +65,9 @@ pub fn run() -> Result<()> {
     };
     let mut opt = AdamW::new(varmap.all_vars(), params).unwrap();
 
-    for step in 0..10 {
+    let steps: std::ops::Range<usize> = 0..100000;
+
+    for step in steps.into_iter().tqdm() {
         let batch = Batch::get_batch(&train_data, BLOCK_SIZE, BATCH_SIZE);
         // println!("X: {:?}", &batch.x);
         let logits = model.forward(&batch.x, 0).unwrap();
@@ -79,14 +82,16 @@ pub fn run() -> Result<()> {
 
         opt.backward_step(&loss).unwrap();
         // println!("Step: ++4{:?}", step);
-        println!(
-            "step: {step} loss: {} lr: {}",
-            loss.to_vec0::<f32>().unwrap(),
-            opt.learning_rate()
-        );
-        // if step % 5 == 0 {
-        //     println!("{step} {}", loss.to_vec0::<f32>().unwrap());
-        // }
+        println!("step: {step} loss: {}", loss.to_vec0::<f32>().unwrap(),);
+        if step % 10 == 0 {
+            println!("step: {step} loss: {}", loss.to_vec0::<f32>().unwrap(),);
+        }
+
+        if step % 500 == 0 {
+            println!("saving checkpint: {}", step);
+            let file = format!("outputs/checkpoint_{step}.safetensors");
+            varmap.save(file).unwrap();
+        }
     }
 
     println!("{:?}", varmap.all_vars());
