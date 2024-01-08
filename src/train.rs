@@ -5,8 +5,8 @@ use candle_core::{DType, Device, Tensor};
 use candle_nn::{AdamW, Optimizer, ParamsAdamW, VarBuilder, VarMap};
 use tokenizers::Tokenizer;
 
-static BATCH_SIZE: usize = 2;
-static BLOCK_SIZE: usize = 512;
+static BATCH_SIZE: usize = 1;
+static BLOCK_SIZE: usize = 2048;
 
 pub fn run() -> Result<()> {
     // let device = Device::Cpu;
@@ -79,7 +79,11 @@ pub fn run() -> Result<()> {
 
         opt.backward_step(&loss).unwrap();
         // println!("Step: ++4{:?}", step);
-        println!("{step} {}", loss.to_vec0::<f32>().unwrap());
+        println!(
+            "step: {step} loss: {} lr: {}",
+            loss.to_vec0::<f32>().unwrap(),
+            opt.learning_rate()
+        );
         // if step % 5 == 0 {
         //     println!("{step} {}", loss.to_vec0::<f32>().unwrap());
         // }
