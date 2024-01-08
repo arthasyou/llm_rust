@@ -6,7 +6,7 @@ use candle_nn::{AdamW, Optimizer, ParamsAdamW, VarBuilder, VarMap};
 use tokenizers::Tokenizer;
 
 static BATCH_SIZE: usize = 2;
-static BLOCK_SIZE: usize = 512;
+static BLOCK_SIZE: usize = 1024;
 
 pub fn run() -> Result<()> {
     // let device = Device::Cpu;
@@ -64,7 +64,7 @@ pub fn run() -> Result<()> {
     };
     let mut opt = AdamW::new(varmap.all_vars(), params).unwrap();
 
-    for step in 0..10 {
+    for step in 0..100000 {
         let batch = Batch::get_batch(&train_data, BLOCK_SIZE, BATCH_SIZE);
         // println!("X: {:?}", &batch.x);
         let logits = model.forward(&batch.x, 0).unwrap();
